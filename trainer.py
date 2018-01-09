@@ -6,16 +6,12 @@ import numpy as np
 from tqdm import tqdm
 
 
-def _wrap_in_tensor(array):
-    pass
 
-
-def _wrap_in_variable(tensors):
-    if isinstance(tensors, (list, tuple)):
-        return [Variable(x) for x in tensors]
-    else:
-        return Variable(tensors)
-
+def _to_list(x):
+	if isinstance(x, (list, tuple)):
+		return x
+	else:
+		return list(x)
 
 def _get_optimizer(optimizer, model):
     aliases = {
@@ -47,16 +43,10 @@ class dataset(Dataset):
         self.targets = targets
 
     def __len__(self):
-    	if isinstance(self.inputs, (list, tuple)):
     		return self.inputs[0].size()[0]
-    	else:
-        	return self.inputs.size()[0]
 
     def __getitem__(self, idx):
-        if not isinstance(self.inputs, (list, tuple)):
-            return self.inputs[idx], self.targets[idx]
-        else:
-            return [x[idx] for x in self.inputs], self.targets[idx]
+        return [x[idx] for x in self.inputs], self.targets[idx]
 
 
 class Trainer(object):
@@ -74,15 +64,16 @@ class Trainer(object):
                 2. Shuffle
                 3. Class weight
         '''
+        inputs = _to_list(inputs)
+
         if validation_data:
             train_dataset = dataset(inputs, targets)
             valid_dataset = None  # TODO
+
         elif validation_split > 0.0:
             split_size = int(len(inputs) * validation_split)
-            train_dataset = dataset(
-                inputs[:-split_size], targets[:-split_size])
-            valid_dataset = dataset(
-                inputs[:-split_size], targets[:-split_size])
+            train_dataset = dataset([x[-split_size:] for x in inputs], targets[:-split_size])
+            valid_dataset = dataset([x[:-split_size] for x in inputs], targets[:-split_size])
         else:
             train_dataset = dataset(inputs, targets)
 
@@ -104,10 +95,15 @@ class Trainer(object):
     def train_batch(self, inputs, targets, class_weight=None):
 
         self.optimizer.zero_grad()
-        input_batch = _wrap_in_variable(inputs)
-        target_batch = _wrap_in_variable(targets)
+        input_batch = [Variable(x) for x in inputs]
+        target_batch = Variable(targets)
+
         # TODO : Make inputs and targets accept np nd-arrayss
-        y = self.model(input_batch)
+        if len(input_batch) == 1:
+        	y = self.model(input_batch[0])
+        else:
+        	y = self.model(input_batch)
+
         loss = self.loss_func(y, target_batch)
         loss.backward()
         self.optimizer.step()
