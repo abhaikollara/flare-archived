@@ -47,7 +47,10 @@ class dataset(Dataset):
         self.targets = targets
 
     def __len__(self):
-        return self.inputs.size()[0]
+    	if isinstance(self.inputs, (list, tuple)):
+    		return self.inputs[0].size()[0]
+    	else:
+        	return self.inputs.size()[0]
 
     def __getitem__(self, idx):
         if not isinstance(self.inputs, (list, tuple)):
@@ -64,7 +67,7 @@ class Trainer(object):
         self.loss_func = loss
 
     def train(self, inputs, targets, batch_size=None, epochs=1,
-              validation_split=0.0, validation_data=None, shuffle=True, class_weight=None):
+              validation_split=0.0, validation_data=None, shuffle=True):
         '''
                 TODO : 
                 1. Validation data
