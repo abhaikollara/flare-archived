@@ -56,7 +56,7 @@ class Trainer(object):
         self.optimizer = _get_optimizer(optimizer, model)
         self.loss_func = loss
 
-    def train(self, inputs, targets, batch_size=None, epochs=1,
+    def train(self, inputs, targets, batch_size=1, epochs=1,
               validation_split=0.0, validation_data=None, shuffle=True):
         '''
                 TODO : 
@@ -86,10 +86,10 @@ class Trainer(object):
                 batch_inputs, batch_targets = batch
                 self.train_batch(batch_inputs, batch_targets)
 
-    def evaluate(self, inputs, targets, batch_size=None, metrics=['accuracy']):
+    def evaluate(self, inputs, targets, batch_size=1, metrics=['accuracy']):
         pass
 
-    def predict(self, inputs, batch_size=None):
+    def predict(self, inputs, batch_size=1):
         pass
 
     def train_batch(self, inputs, targets, class_weight=None):
