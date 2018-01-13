@@ -8,22 +8,22 @@ from tqdm import tqdm
 
 
 def _to_list(x):
-	if isinstance(x, (list, tuple)):
-		return x
-	else:
-		return list(x)
+    if isinstance(x, (list, tuple)):
+        return x
+    else:
+        return list(x)
 
 def _get_optimizer(optimizer, model):
     aliases = {
-        'adadelta'	: optim.Adadelta,
-        'adagrad'	: optim.Adagrad,
-        'adam'		: optim.Adam,
-        'adamax'	: optim.Adamax,
-        'asgd'		: optim.ASGD,
-        'lbfgs'		: optim.LBFGS,
-        'rms'		: optim.RMSprop,
-        'rprop'		: optim.Rprop,
-        'sgd'		: optim.SGD,
+        'adadelta'  : optim.Adadelta,
+        'adagrad'   : optim.Adagrad,
+        'adam'      : optim.Adam,
+        'adamax'    : optim.Adamax,
+        'asgd'      : optim.ASGD,
+        'lbfgs'     : optim.LBFGS,
+        'rms'       : optim.RMSprop,
+        'rprop'     : optim.Rprop,
+        'sgd'       : optim.SGD,
     }
 
     if isinstance(optimizer, torch.optim.Optimizer):
@@ -49,7 +49,7 @@ class dataset(Dataset):
             raise ValueError('Inputs and targets must have equal n_samples dimension')
 
     def __len__(self):
-    		return self.inputs[0].size()[0]
+            return self.inputs[0].size()[0]
 
     def __getitem__(self, idx):
         return [x[idx] for x in self.inputs], self.targets[idx]
@@ -106,9 +106,9 @@ class Trainer(object):
 
         # TODO : Make inputs and targets accept np nd-arrayss
         if len(input_batch) == 1:
-        	y = self.model(input_batch[0])
+            y = self.model(input_batch[0])
         else:
-        	y = self.model(input_batch)
+            y = self.model(input_batch)
 
         loss = self.loss_func(y, target_batch)
         loss.backward()
