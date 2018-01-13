@@ -181,7 +181,7 @@ class Trainer(object):
 
         return torch.cat(preds, dim=-1)
 
-    def train_batch(self, inputs, targets, class_weight=None):
+    def train_batch(self, inputs, targets):
         """ Single gradient update over one batch of samples
 
         # Arguments
