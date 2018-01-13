@@ -34,7 +34,8 @@ def _get_optimizer(optimizer, model):
         return optimizer
     else:
         if optimizer in aliases.keys():
-            return aliases[optimizer](filter (lambda p: p.requires_grad, model.parameters()))
+            return aliases[optimizer](filter(lambda p: p.requires_grad,
+                                            model.parameters()))
         else:
             raise TypeError('Optimizer not understood')
 
@@ -67,17 +68,36 @@ class dataset(Dataset):
 class Trainer(object):
 
     def __init__(self, model, loss, optimizer):
+        """ A trainer utility for PyTorch modules
+
+        # Arguments:
+            model: An instance of torch.nn.Module
+            loss: A PyTorch loss function
+            optimizer: String (name of optimizer) or optimizer object
+        """
         self.model = model
         self.optimizer = _get_optimizer(optimizer, model)
         self.loss_func = loss
 
     def train(self, inputs, targets, batch_size=1, epochs=1,
               validation_split=0.0, validation_data=None, shuffle=True):
-        '''
-                TODO : 
-                2. Shuffle
-                3. Class weight
-        '''
+        """Trains the model for a fixed number of epochs
+
+        # Arguments
+            inputs: torch.Tensor or list of torch.Tensor
+            targets: torch.Tensor. Target values/classes
+            batch_size: int. Number of samples per gradient update.
+            epochs: int. Number of epochs to train the model.
+            validation_split: float (0. < x < 1.)
+                Fraction of data to use as validation data
+            validation_data: tuple(input_valid, target_valid)
+            shuffle: boolean. Whether to shuffle data at each epoch
+
+
+        #Raises
+            ValueError: If the number of samples in inputs and
+                        targets are not equal
+        """
 
         inputs = _to_list(inputs)
 
@@ -93,11 +113,12 @@ class Trainer(object):
         train_data_loader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=shuffle)
 
-        loss = Variable(torch.Tensor([0.]))
+        loss = Variable(torch.Tensor([0.]))  # Required for progress bar
 
         for epoch in range(epochs):
             print("Epoch", str(epoch), "of", str(epochs))
-            for batch in tqdm(train_data_loader, postfix={'loss': loss.data.cpu().numpy()[0]}):
+            for batch in tqdm(train_data_loader,
+                              postfix={'loss': loss.data.cpu().numpy()[0]}):
                 batch_inputs, batch_targets = batch
                 loss = self.train_batch(batch_inputs, batch_targets)
 
@@ -105,7 +126,19 @@ class Trainer(object):
                 self.evaluate(validation_data[0], validation_data[1])
 
     def evaluate(self, inputs, targets, batch_size=1, metrics=['accuracy']):
-        # TODO : 1. Metrics
+        """Computes and prints the loss on data
+            batch by batch without optimizing
+
+        # Arguments
+            inputs: torch.Tensor or list of torch.Tensor
+            targets: torch.Tensor. Target values/classes
+            batch_size: int. Number of samples per gradient update.
+            metrics : ## TODO ##
+
+        #Raises
+            ValueError: If the number of samples in inputs and
+                        targets are not equal
+        """
 
         inputs = _to_list(inputs)
         valid_dataset = dataset(inputs, targets)
@@ -121,6 +154,21 @@ class Trainer(object):
         print('Loss: ', mean_loss.data.cpu().numpy()[0])
 
     def predict(self, inputs, batch_size=1, classes=False):
+        """Generates output predictions batch
+           by batch for the input samples.
+
+        # Arguments
+            inputs: torch.Tensor or list of torch.Tensor
+            batch_size: integer. Number of samples per batch
+            classes: boolean. Whether to return class predictions
+
+        # Returns
+            A torch variable of predictions
+
+        #Raises
+            ValueError: If the number of samples in inputs are
+                        not equal
+        """
         inputs = _to_list(inputs)
         predict_dataset = dataset(inputs)
         predict_data_loader = DataLoader(
@@ -134,6 +182,15 @@ class Trainer(object):
         return torch.cat(preds, dim=-1)
 
     def train_batch(self, inputs, targets, class_weight=None):
+        """ Single gradient update over one batch of samples
+
+        # Arguments
+            inputs: torch.Tensor or list of torch.Tensor
+            targets: torch.Tensor. Target values/classes
+
+        # Returns
+            Scalar training loss as torch Variable
+        """
         inputs = _to_list(inputs)
 
         self.optimizer.zero_grad()
@@ -153,6 +210,16 @@ class Trainer(object):
         return loss
 
     def evaluate_batch(self, inputs, targets, metrics=['accuracy']):
+        """Evaluates the model over a single batch of samples.
+
+        # Arguments
+            inputs: torch.Tensor or list of torch.Tensor
+            targets: torch.Tensor. Target values/classes
+
+        # Returns
+            Scalar test loss as torch variable
+
+        """
         inputs = _to_list(inputs)
 
         input_batch = [Variable(x, volatile=True) for x in inputs]
@@ -169,6 +236,14 @@ class Trainer(object):
         return loss
 
     def predict_batch(self, inputs, classes=False):
+        """Returns predictions for a single batch of samples.
+
+        # Arguments
+            inputs: torch.Tensor or list of torch.Tensor
+            classes: boolean. Whether to return class predictions
+        # Returns
+            A torch variable of predictions
+        """
         inputs = _to_list(inputs)
         input_batch = [Variable(x, volatile=True) for x in inputs]
 
