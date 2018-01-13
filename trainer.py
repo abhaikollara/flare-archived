@@ -125,7 +125,8 @@ class Trainer(object):
                 loss = self.train_batch(batch_inputs, batch_targets)
 
             if validation_data:
-                self.evaluate(validation_data[0], validation_data[1])
+                val_loss = self.evaluate(validation_data[0], validation_data[1])
+                print("Validation loss ", val_loss.data.cpu().numpy()[0])
 
     def evaluate(self, inputs, targets, batch_size=1, metrics=['accuracy']):
         """Computes and prints the loss on data
@@ -153,7 +154,7 @@ class Trainer(object):
             losses.append(batch_loss)
 
         mean_loss = torch.mean(torch.cat(losses))
-        print('Loss: ', mean_loss.data.cpu().numpy()[0])
+        return mean_loss
 
     def predict(self, inputs, batch_size=1, classes=False):
         """Generates output predictions batch
