@@ -41,7 +41,7 @@ def _get_optimizer(optimizer, model):
 
 class dataset(Dataset):
 
-    def __init__(self, inputs, targets):
+    def __init__(self, inputs, targets=None):
         super(dataset, self).__init__()
         self.inputs = inputs
         self.targets = targets
@@ -49,14 +49,18 @@ class dataset(Dataset):
         if len(set([len(x) for x in self.inputs])) != 1:
             raise ValueError('Inputs must have equal n_samples dimension')
 
-        if len(inputs[0]) != len(targets):
-            raise ValueError('Inputs and targets must have equal n_samples dimension')
+        if targets:
+            if len(inputs[0]) != len(targets):
+                raise ValueError('Inputs and targets must have equal n_samples dimension')
 
     def __len__(self):
             return self.inputs[0].size()[0]
 
     def __getitem__(self, idx):
-        return [x[idx] for x in self.inputs], self.targets[idx]
+        if self.targets:
+            return [x[idx] for x in self.inputs], self.targets[idx]
+        else:
+            return [x[idx] for x in self.inputs]
 
 
 class Trainer(object):
@@ -114,8 +118,20 @@ class Trainer(object):
         mean_loss = torch.mean(torch.cat(losses))
         print('Loss: ', mean_loss.data.cpu().numpy()[0])
 
-    def predict(self, inputs, batch_size=1):
-        pass
+
+    def predict(self, inputs, batch_size=1, classes=False):
+        inputs = _to_list(inputs)
+        predict_dataset = dataset(inputs)
+        predict_data_loader = DataLoader(
+                    predict_dataset, batch_size=batch_size, shuffle=False)
+
+        preds = []
+        for batch in tqdm(predict_data_loader):
+            pred = self.predict_batch(batch, classes=classes)
+            preds.append(pred)
+
+        return torch.cat(preds, dim=-1)
+
 
     def train_batch(self, inputs, targets, class_weight=None):
         inputs = _to_list(inputs)
@@ -136,6 +152,7 @@ class Trainer(object):
         self.optimizer.step()
         return loss
 
+
     def evaluate_batch(self, inputs, targets, metrics=['accuracy']):
         inputs = _to_list(inputs)
 
@@ -152,5 +169,19 @@ class Trainer(object):
         loss = self.loss_func(y, target_batch)
         return loss
 
-    def predict_batch(self, inputs):
-        pass
+    def predict_batch(self, inputs, classes=False):
+        inputs = _to_list(inputs)
+        input_batch = [Variable(x, volatile=True) for x in inputs]
+
+        # TODO : Make inputs and targets accept np nd-arrayss
+
+        if len(input_batch) == 1:
+            y = self.model(input_batch[0])
+        else:
+            y = self.model(input_batch)
+
+        if classes:
+            return torch.max(y, -1)[1]
+        else:
+            return y
+
