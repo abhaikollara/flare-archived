@@ -46,12 +46,11 @@ class dataset(Dataset):
         super(dataset, self).__init__()
         self.inputs = inputs
         self.targets = targets
-
         if len(set([len(x) for x in self.inputs])) != 1:
             raise ValueError('Inputs must have equal n_samples dimension')
 
         if targets is not None:
-            if len(inputs[0]) != len(targets):
+            if len(self.inputs[0]) != len(self.targets):
                 raise ValueError(
                     'Inputs and targets must have equal n_samples dimension')
 
@@ -105,11 +104,11 @@ class Trainer(object):
         inputs = _to_list(inputs)
 
         if validation_split > 0.0:
-            split_size = int(len(inputs) * validation_split)
-            train_dataset = dataset([x[-split_size:]
+            split_size = int(len(inputs[0]) * validation_split)
+            train_dataset = dataset([x[:-split_size]
                                      for x in inputs], targets[:-split_size])
-            validation_data = ([x[:-split_size]
-                                for x in inputs], targets[:-split_size])
+            validation_data = ([x[-split_size:]
+                                for x in inputs], targets[-split_size:])
         else:
             train_dataset = dataset(inputs, targets)
 
