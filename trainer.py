@@ -95,6 +95,8 @@ class Trainer(object):
             validation_data: tuple(input_valid, target_valid)
             shuffle: boolean. Whether to shuffle data at each epoch
 
+        # Returns
+            Epoch loss history as 1D torch variable
 
         #Raises
             ValueError: If the number of samples in inputs and
@@ -125,10 +127,10 @@ class Trainer(object):
                 batch_inputs, batch_targets = batch
                 batch_loss = self.train_batch(batch_inputs, batch_targets)
                 batch_losses.append(batch_loss)
-                loss_history.append(batch_loss)
 
             # Average batch loss over an epoch
             epoch_loss = torch.mean(torch.cat(batch_losses))
+            loss_history.append(epoch_loss)
             print("Train loss :", epoch_loss.data.cpu().numpy()[0])
 
             if validation_data:
