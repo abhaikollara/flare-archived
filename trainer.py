@@ -74,6 +74,9 @@ class Trainer(object):
             model: An instance of torch.nn.Module
             loss: A PyTorch loss function
             optimizer: String (name of optimizer) or optimizer object
+
+        # Raises:
+            TypeError: If optimizer is invalid
         """
         self.model = model
         self.optimizer = _get_optimizer(optimizer, model)
