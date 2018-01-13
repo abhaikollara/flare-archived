@@ -34,7 +34,7 @@ def _get_optimizer(optimizer, model):
         return optimizer
     else:
         if optimizer in aliases.keys():
-            return aliases[optimizer](model.parameters())
+            return aliases[optimizer](filter (lambda p: p.requires_grad, model.parameters()))
         else:
             raise TypeError('Optimizer not understood')
 
@@ -49,7 +49,7 @@ class dataset(Dataset):
         if len(set([len(x) for x in self.inputs])) != 1:
             raise ValueError('Inputs must have equal n_samples dimension')
 
-        if targets:
+        if targets is not None:
             if len(inputs[0]) != len(targets):
                 raise ValueError(
                     'Inputs and targets must have equal n_samples dimension')
@@ -58,7 +58,7 @@ class dataset(Dataset):
         return self.inputs[0].size()[0]
 
     def __getitem__(self, idx):
-        if self.targets:
+        if self.targets is not None:
             return [x[idx] for x in self.inputs], self.targets[idx]
         else:
             return [x[idx] for x in self.inputs]
