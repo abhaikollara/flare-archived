@@ -147,6 +147,9 @@ class Trainer(object):
             batch_size: int. Number of samples per gradient update.
             metrics : ## TODO ##
 
+        # Returns
+            Scalar test loss as torch variable
+
         #Raises
             ValueError: If the number of samples in inputs and
                         targets are not equal
@@ -175,7 +178,7 @@ class Trainer(object):
             classes: boolean. Whether to return class predictions
 
         # Returns
-            A torch variable of predictions
+            A 1D torch variable of predictions
 
         #Raises
             ValueError: If the number of samples in inputs are
@@ -201,7 +204,7 @@ class Trainer(object):
             targets: torch.Tensor. Target values/classes
 
         # Returns
-            Scalar training loss as torch Variable
+            Scalar training loss as torch variable
         """
         inputs = _to_list(inputs)
 
