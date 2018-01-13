@@ -6,7 +6,6 @@ import numpy as np
 from tqdm import tqdm
 
 
-
 def _to_list(x):
     '''
         Used to ensure that model input is
@@ -17,17 +16,18 @@ def _to_list(x):
     else:
         return list(x)
 
+
 def _get_optimizer(optimizer, model):
     aliases = {
-        'adadelta'  : optim.Adadelta,
-        'adagrad'   : optim.Adagrad,
-        'adam'      : optim.Adam,
-        'adamax'    : optim.Adamax,
-        'asgd'      : optim.ASGD,
-        'lbfgs'     : optim.LBFGS,
-        'rms'       : optim.RMSprop,
-        'rprop'     : optim.Rprop,
-        'sgd'       : optim.SGD,
+        'adadelta': optim.Adadelta,
+        'adagrad': optim.Adagrad,
+        'adam': optim.Adam,
+        'adamax': optim.Adamax,
+        'asgd': optim.ASGD,
+        'lbfgs': optim.LBFGS,
+        'rms': optim.RMSprop,
+        'rprop': optim.Rprop,
+        'sgd': optim.SGD,
     }
 
     if isinstance(optimizer, torch.optim.Optimizer):
@@ -51,10 +51,11 @@ class dataset(Dataset):
 
         if targets:
             if len(inputs[0]) != len(targets):
-                raise ValueError('Inputs and targets must have equal n_samples dimension')
+                raise ValueError(
+                    'Inputs and targets must have equal n_samples dimension')
 
     def __len__(self):
-            return self.inputs[0].size()[0]
+        return self.inputs[0].size()[0]
 
     def __getitem__(self, idx):
         if self.targets:
@@ -82,8 +83,10 @@ class Trainer(object):
 
         if validation_split > 0.0:
             split_size = int(len(inputs) * validation_split)
-            train_dataset = dataset([x[-split_size:] for x in inputs], targets[:-split_size])
-            validation_data = ([x[:-split_size] for x in inputs], targets[:-split_size])
+            train_dataset = dataset([x[-split_size:]
+                                     for x in inputs], targets[:-split_size])
+            validation_data = ([x[:-split_size]
+                                for x in inputs], targets[:-split_size])
         else:
             train_dataset = dataset(inputs, targets)
 
@@ -94,21 +97,20 @@ class Trainer(object):
 
         for epoch in range(epochs):
             print("Epoch", str(epoch), "of", str(epochs))
-            for batch in tqdm(train_data_loader, postfix={'loss':loss.data.cpu().numpy()[0]}):
+            for batch in tqdm(train_data_loader, postfix={'loss': loss.data.cpu().numpy()[0]}):
                 batch_inputs, batch_targets = batch
                 loss = self.train_batch(batch_inputs, batch_targets)
 
             if validation_data:
                 self.evaluate(validation_data[0], validation_data[1])
 
-
     def evaluate(self, inputs, targets, batch_size=1, metrics=['accuracy']):
-        #TODO : 1. Metrics
+        # TODO : 1. Metrics
 
         inputs = _to_list(inputs)
         valid_dataset = dataset(inputs, targets)
         valid_data_loader = DataLoader(
-                    valid_dataset, batch_size=batch_size, shuffle=False)
+            valid_dataset, batch_size=batch_size, shuffle=False)
         losses = []
         for batch in tqdm(valid_data_loader):
             batch_inputs, batch_targets = batch
@@ -118,12 +120,11 @@ class Trainer(object):
         mean_loss = torch.mean(torch.cat(losses))
         print('Loss: ', mean_loss.data.cpu().numpy()[0])
 
-
     def predict(self, inputs, batch_size=1, classes=False):
         inputs = _to_list(inputs)
         predict_dataset = dataset(inputs)
         predict_data_loader = DataLoader(
-                    predict_dataset, batch_size=batch_size, shuffle=False)
+            predict_dataset, batch_size=batch_size, shuffle=False)
 
         preds = []
         for batch in tqdm(predict_data_loader):
@@ -131,7 +132,6 @@ class Trainer(object):
             preds.append(pred)
 
         return torch.cat(preds, dim=-1)
-
 
     def train_batch(self, inputs, targets, class_weight=None):
         inputs = _to_list(inputs)
@@ -151,7 +151,6 @@ class Trainer(object):
         loss.backward()
         self.optimizer.step()
         return loss
-
 
     def evaluate_batch(self, inputs, targets, metrics=['accuracy']):
         inputs = _to_list(inputs)
@@ -184,4 +183,3 @@ class Trainer(object):
             return torch.max(y, -1)[1]
         else:
             return y
-
