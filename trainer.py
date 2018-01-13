@@ -69,7 +69,6 @@ class Trainer(object):
                 2. Shuffle
                 3. Class weight
         '''
-        self.model.train()
 
         inputs = _to_list(inputs)
 
@@ -98,7 +97,6 @@ class Trainer(object):
     def evaluate(self, inputs, targets, batch_size=1, metrics=['accuracy']):
         #TODO : 1. Metrics
 
-        self.model.eval()
         inputs = _to_list(inputs)
         valid_dataset = dataset(inputs, targets)
         valid_data_loader = DataLoader(
@@ -120,6 +118,7 @@ class Trainer(object):
         self.optimizer.zero_grad()
         input_batch = [Variable(x) for x in inputs]
         target_batch = Variable(targets)
+        self.model.train()
 
         # TODO : Make inputs and targets accept np nd-arrayss
         if len(input_batch) == 1:
@@ -135,7 +134,7 @@ class Trainer(object):
     def evaluate_batch(self, inputs, targets, metrics=['accuracy']):
         input_batch = [Variable(x, volatile=True) for x in inputs]
         target_batch = Variable(targets, volatile=True)
-
+        self.model.eval()
         # TODO : Make inputs and targets accept np nd-arrayss
 
         if len(input_batch) == 1:
