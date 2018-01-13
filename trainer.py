@@ -8,6 +8,10 @@ from tqdm import tqdm
 
 
 def _to_list(x):
+    '''
+        Used to ensure that model input is
+        always a list, even if single input is required
+    '''
     if isinstance(x, (list, tuple)):
         return x
     else:
@@ -114,6 +118,7 @@ class Trainer(object):
         pass
 
     def train_batch(self, inputs, targets, class_weight=None):
+        inputs = _to_list(inputs)
 
         self.optimizer.zero_grad()
         input_batch = [Variable(x) for x in inputs]
@@ -132,6 +137,8 @@ class Trainer(object):
         return loss
 
     def evaluate_batch(self, inputs, targets, metrics=['accuracy']):
+        inputs = _to_list(inputs)
+
         input_batch = [Variable(x, volatile=True) for x in inputs]
         target_batch = Variable(targets, volatile=True)
         self.model.eval()
