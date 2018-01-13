@@ -83,10 +83,13 @@ class Trainer(object):
         train_data_loader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=shuffle)
 
+        loss = Variable(torch.Tensor([0.]))
+
         for epoch in range(epochs):
             print("Epoch", str(epoch), "of", str(epochs))
             for batch in tqdm(train_data_loader, postfix={'loss':loss.data.cpu().numpy()[0]}):
                 batch_inputs, batch_targets = batch
+                loss = self.train_batch(batch_inputs, batch_targets)
 
             if validation_data:
                 self.evaluate(validation_data[0], validation_data[1])
