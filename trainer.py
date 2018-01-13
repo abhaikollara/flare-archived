@@ -42,7 +42,7 @@ class dataset(Dataset):
         self.inputs = inputs
         self.targets = targets
 
-        if set([len(x) for x in self.inputs]) != 1:
+        if len(set([len(x) for x in self.inputs])) != 1:
             raise ValueError('Inputs must have equal n_samples dimension')
 
         if len(inputs[0]) != len(targets):
