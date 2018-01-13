@@ -66,20 +66,17 @@ class Trainer(object):
               validation_split=0.0, validation_data=None, shuffle=True):
         '''
                 TODO : 
-                1. Validation data
                 2. Shuffle
                 3. Class weight
         '''
+        self.model.train()
+
         inputs = _to_list(inputs)
 
-        if validation_data:
-            train_dataset = dataset(inputs, targets)
-            valid_dataset = None  # TODO
-
-        elif validation_split > 0.0:
+        if validation_split > 0.0:
             split_size = int(len(inputs) * validation_split)
             train_dataset = dataset([x[-split_size:] for x in inputs], targets[:-split_size])
-            valid_dataset = dataset([x[:-split_size] for x in inputs], targets[:-split_size])
+            validation_data = ([x[:-split_size] for x in inputs], targets[:-split_size])
         else:
             train_dataset = dataset(inputs, targets)
 
@@ -88,12 +85,29 @@ class Trainer(object):
 
         for epoch in range(epochs):
             print("Epoch", str(epoch), "of", str(epochs))
-            for batch in tqdm(train_data_loader):
+            for batch in tqdm(train_data_loader, postfix={'loss':loss.data.cpu().numpy()[0]}):
                 batch_inputs, batch_targets = batch
-                self.train_batch(batch_inputs, batch_targets)
+
+            if validation_data:
+                self.evaluate(validation_data[0], validation_data[1])
+
 
     def evaluate(self, inputs, targets, batch_size=1, metrics=['accuracy']):
-        pass
+        #TODO : 1. Metrics
+
+        self.model.eval()
+        inputs = _to_list(inputs)
+        valid_dataset = dataset(inputs, targets)
+        valid_data_loader = DataLoader(
+                    valid_dataset, batch_size=batch_size, shuffle=False)
+        losses = []
+        for batch in tqdm(valid_data_loader):
+            batch_inputs, batch_targets = batch
+            batch_loss = self.evaluate_batch(batch_inputs, batch_targets)
+            losses.append(batch_loss)
+
+        mean_loss = torch.mean(torch.cat(losses))
+        print('Loss: ', mean_loss.data.cpu().numpy()[0])
 
     def predict(self, inputs, batch_size=1):
         pass
@@ -113,9 +127,21 @@ class Trainer(object):
         loss = self.loss_func(y, target_batch)
         loss.backward()
         self.optimizer.step()
+        return loss
 
     def evaluate_batch(self, inputs, targets, metrics=['accuracy']):
-        pass
+        input_batch = [Variable(x, volatile=True) for x in inputs]
+        target_batch = Variable(targets, volatile=True)
+
+        # TODO : Make inputs and targets accept np nd-arrayss
+
+        if len(input_batch) == 1:
+            y = self.model(input_batch[0])
+        else:
+            y = self.model(input_batch)
+
+        loss = self.loss_func(y, target_batch)
+        return loss
 
     def predict_batch(self, inputs):
         pass
