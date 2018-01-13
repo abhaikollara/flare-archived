@@ -82,7 +82,7 @@ class Trainer(object):
         self.loss_func = loss
 
     def train(self, inputs, targets, batch_size=1, epochs=1,
-              validation_split=0.0, validation_data=None, shuffle=True):
+              validation_split=0.0, validation_data=None, shuffle=True, disable_progbar=False):
         """Trains the model for a fixed number of epochs
 
         # Arguments
@@ -121,7 +121,7 @@ class Trainer(object):
             print("Epoch", str(epoch + 1), "of", str(epochs))
             batch_losses = []
 
-            for batch in tqdm(train_data_loader):
+            for batch in tqdm(train_data_loader, disable=disable_progbar):
                 batch_inputs, batch_targets = batch
                 batch_loss = self.train_batch(batch_inputs, batch_targets)
                 batch_losses.append(batch_loss)
@@ -132,12 +132,12 @@ class Trainer(object):
             print("Train loss :", epoch_loss.data.cpu().numpy()[0])
 
             if validation_data:
-                val_loss = self.evaluate(validation_data[0], validation_data[1])
+                val_loss = self.evaluate(validation_data[0], validation_data[1], disable_progbar=True)
                 print("Validation loss :", val_loss.data.cpu().numpy()[0])
 
         return torch.cat(loss_history)
 
-    def evaluate(self, inputs, targets, batch_size=1, metrics=['accuracy']):
+    def evaluate(self, inputs, targets, batch_size=1, metrics=['accuracy'], disable_progbar=False):
         """Computes and prints the loss on data
             batch by batch without optimizing
 
@@ -157,7 +157,7 @@ class Trainer(object):
         valid_data_loader = DataLoader(
             valid_dataset, batch_size=batch_size, shuffle=False)
         losses = []
-        for batch in tqdm(valid_data_loader):
+        for batch in tqdm(valid_data_loader, disable=disable_progbar):
             batch_inputs, batch_targets = batch
             batch_loss = self.evaluate_batch(batch_inputs, batch_targets)
             losses.append(batch_loss)
@@ -165,7 +165,7 @@ class Trainer(object):
         mean_loss = torch.mean(torch.cat(losses))
         return mean_loss
 
-    def predict(self, inputs, batch_size=1, classes=False):
+    def predict(self, inputs, batch_size=1, classes=False, disable_progbar=False):
         """Generates output predictions batch
            by batch for the input samples.
 
