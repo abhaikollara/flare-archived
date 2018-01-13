@@ -47,7 +47,7 @@ class dataset(Dataset):
         self.inputs = inputs
         self.targets = targets
         if len(set([len(x) for x in self.inputs])) != 1:
-            raise ValueError('Inputs must have equal n_samples dimension')
+            raise ValueError('Inputs must have equal n_samples dimension.')
 
         if targets is not None:
             if len(self.inputs[0]) != len(self.targets):
@@ -115,18 +115,27 @@ class Trainer(object):
         train_data_loader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=shuffle)
 
-        loss = Variable(torch.Tensor([0.]))  # Required for progress bar
+        loss_history = []
 
         for epoch in range(epochs):
-            print("Epoch", str(epoch), "of", str(epochs))
-            for batch in tqdm(train_data_loader,
-                              postfix={'loss': loss.data.cpu().numpy()[0]}):
+            print("Epoch", str(epoch + 1), "of", str(epochs))
+            batch_losses = []
+
+            for batch in tqdm(train_data_loader):
                 batch_inputs, batch_targets = batch
-                loss = self.train_batch(batch_inputs, batch_targets)
+                batch_loss = self.train_batch(batch_inputs, batch_targets)
+                batch_losses.append(batch_loss)
+                loss_history.append(batch_loss)
+
+            # Average batch loss over an epoch
+            epoch_loss = torch.mean(torch.cat(batch_losses))
+            print("Train loss :", epoch_loss.data.cpu().numpy()[0])
 
             if validation_data:
                 val_loss = self.evaluate(validation_data[0], validation_data[1])
-                print("Validation loss ", val_loss.data.cpu().numpy()[0])
+                print("Validation loss :", val_loss.data.cpu().numpy()[0])
+
+        return torch.cat(loss_history)
 
     def evaluate(self, inputs, targets, batch_size=1, metrics=['accuracy']):
         """Computes and prints the loss on data
