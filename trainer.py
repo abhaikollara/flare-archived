@@ -1,3 +1,5 @@
+import inspect
+
 import torch
 from torch.autograd import Variable
 from torch import optim
@@ -17,36 +19,13 @@ def _to_list(x):
         return list(x)
 
 
-def _get_optimizer(optimizer, model):
-    aliases = {
-        'adadelta': optim.Adadelta,
-        'adagrad': optim.Adagrad,
-        'adam': optim.Adam,
-        'adamax': optim.Adamax,
-        'asgd': optim.ASGD,
-        'lbfgs': optim.LBFGS,
-        'rms': optim.RMSprop,
-        'rprop': optim.Rprop,
-        'sgd': optim.SGD,
-    }
-
-    if isinstance(optimizer, torch.optim.Optimizer):
-        return optimizer
-    else:
-        if optimizer in aliases.keys():
-            return aliases[optimizer](filter(lambda p: p.requires_grad,
-                                            model.parameters()))
-        else:
-            raise TypeError('Optimizer not understood')
-
-
 class dataset(Dataset):
 
     def __init__(self, inputs, targets=None):
         super(dataset, self).__init__()
         self.inputs = inputs
         self.targets = targets
-        if len(set([len(x) for x in self.inputs])) != 1:
+        if len(set(len(x) for x in self.inputs)) != 1:
             raise ValueError('Inputs must have equal n_samples dimension.')
 
         if targets is not None:
@@ -78,7 +57,7 @@ class Trainer(object):
             TypeError: If optimizer is invalid
         """
         self.model = model
-        self.optimizer = _get_optimizer(optimizer, model)
+        self.optimizer = optimizer
         self.loss_func = loss
 
     def train(self, inputs, targets, batch_size=1, epochs=1,
@@ -117,29 +96,66 @@ class Trainer(object):
         train_data_loader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=shuffle)
 
-        loss_history = []
+        self.train_on_generator(
+            train_data_loader, epochs=epochs, validation_data=validation_data)
 
-        for epoch in range(epochs):
-            print("Epoch", str(epoch + 1), "of", str(epochs))
-            batch_losses = []
+    def train_on_generator(self, generator, steps_per_epoch=None, epochs=1, validation_data=None, validation_steps=None):
+        if isinstance(generator, DataLoader):
+            for epoch in range(epochs):
+                print('Epoch', str(epoch), 'of', str(epochs))
+                for batch in tqdm(generator):
+                    batch_inputs, batch_targets = batch
+                    _ = self.train_batch(batch_inputs, batch_targets)
 
-            for batch in tqdm(train_data_loader, disable=disable_progbar):
-                batch_inputs, batch_targets = batch
-                batch_loss = self.train_batch(batch_inputs, batch_targets)
-                batch_losses.append(batch_loss)
+                if validation_data is not None:
+                    if isinstance(validation_data, DataLoader) or inspect.isgenerator(validation_data):
+                        self.evaluate_on_generator(validation_data)
+                    else:
+                        self.evaluate(validation_data[0], validation_data[1])
+        else:
+            assert steps_per_epoch is not None
+            for epoch in range(epochs):
+                print('Epoch', str(epoch), 'of', str(epochs))
+                for _ in tqdm(range(steps_per_epoch)):
+                    batch_inputs, batch_targets = next(generator)
+                    _ = self.train_batch(batch_inputs, batch_targets)
 
-            # Average batch loss over an epoch
-            epoch_loss = torch.mean(torch.cat(batch_losses))
-            loss_history.append(epoch_loss)
-            print("Train loss :", epoch_loss.data.cpu().numpy()[0])
+                if validation_data is not None:
+                    if isinstance(validation_data, DataLoader) or inspect.isgenerator(validation_data):
+                        self.evaluate_on_generator(
+                            validation_data, validation_steps)
+                    else:
+                        self.evaluate(validation_data[0], validation_data[1])
 
-            if validation_data:
-                val_loss = self.evaluate(validation_data[0], validation_data[1], disable_progbar=True)
-                print("Validation loss :", val_loss.data.cpu().numpy()[0])
+    def train_batch(self, inputs, targets):
+        """ Single gradient update over one batch of samples
 
-        return torch.cat(loss_history)
+        # Arguments
+            inputs: torch.Tensor or list of torch.Tensor
+            targets: torch.Tensor. Target values/classes
 
-    def evaluate(self, inputs, targets, batch_size=1, metrics=['accuracy'], disable_progbar=False):
+        # Returns
+            Scalar training loss as torch variable
+        """
+        inputs = _to_list(inputs)
+
+        self.optimizer.zero_grad()
+        input_batch = [Variable(x) for x in inputs]
+        target_batch = Variable(targets)
+        self.model.train()
+
+        # TODO : Make inputs and targets accept np nd-arrayss
+        if len(input_batch) == 1:
+            y = self.model(input_batch[0])
+        else:
+            y = self.model(input_batch)
+
+        loss = self.loss_func(y, target_batch)
+        loss.backward()
+        self.optimizer.step()
+        return loss.data
+
+    def evaluate(self, inputs, targets, batch_size=1):
         """Computes and prints the loss on data
             batch by batch without optimizing
 
@@ -160,15 +176,46 @@ class Trainer(object):
         inputs = _to_list(inputs)
         valid_dataset = dataset(inputs, targets)
         valid_data_loader = DataLoader(
-            valid_dataset, batch_size=batch_size, shuffle=False)
-        losses = []
-        for batch in tqdm(valid_data_loader, disable=disable_progbar):
-            batch_inputs, batch_targets = batch
-            batch_loss = self.evaluate_batch(batch_inputs, batch_targets)
-            losses.append(batch_loss)
+            valid_dataset, batch_size=batch_size)
 
-        mean_loss = torch.mean(torch.cat(losses))
-        return mean_loss
+        self.evaluate_on_generator(valid_data_loader)
+
+    def evaluate_on_generator(self, generator, steps_per_epoch=None):
+        if isinstance(generator, DataLoader):
+            for batch in tqdm(generator):
+                batch_inputs, batch_targets = batch
+                _ = self.evaluate_batch(batch_inputs, batch_targets)
+        else:
+            assert steps_per_epoch is not None
+            for _ in tqdm(range(steps_per_epoch)):
+                batch_inputs, batch_targets = next(generator)
+                _ = self.evaluate_batch(batch_inputs, batch_targets)
+
+    def evaluate_batch(self, inputs, targets):
+        """Evaluates the model over a single batch of samples.
+
+        # Arguments
+            inputs: torch.Tensor or list of torch.Tensor
+            targets: torch.Tensor. Target values/classes
+
+        # Returns
+            Scalar test loss as torch variable
+
+        """
+        inputs = _to_list(inputs)
+
+        input_batch = [Variable(x, volatile=True) for x in inputs]
+        target_batch = Variable(targets, volatile=True)
+        self.model.eval()
+        # TODO : Make inputs and targets accept np nd-arrayss
+
+        if len(input_batch) == 1:
+            y = self.model(input_batch[0])
+        else:
+            y = self.model(input_batch)
+
+        loss = self.loss_func(y, target_batch)
+        return loss.data
 
     def predict(self, inputs, batch_size=1, classes=False, disable_progbar=False):
         """Generates output predictions batch
@@ -198,59 +245,22 @@ class Trainer(object):
 
         return torch.cat(preds, dim=-1)
 
-    def train_batch(self, inputs, targets):
-        """ Single gradient update over one batch of samples
-
-        # Arguments
-            inputs: torch.Tensor or list of torch.Tensor
-            targets: torch.Tensor. Target values/classes
-
-        # Returns
-            Scalar training loss as torch variable
-        """
-        inputs = _to_list(inputs)
-
-        self.optimizer.zero_grad()
-        input_batch = [Variable(x) for x in inputs]
-        target_batch = Variable(targets)
-        self.model.train()
-
-        # TODO : Make inputs and targets accept np nd-arrayss
-        if len(input_batch) == 1:
-            y = self.model(input_batch[0])
+    def predict_on_generator(self, generator, steps_per_epoch, classes=False):
+        preds = []
+        if isinstance(generator, DataLoader):
+            for batch in generator:
+                batch_inputs, batch_targets = batch
+                pred = self.predict_batch(
+                    batch_inputs, batch_targets, classes=classes)
         else:
-            y = self.model(input_batch)
+            steps = 0
+            while steps < steps_per_epoch:
+                batch_inputs, batch_targets = next(generator)
+                pred = self.predict_batch(batch_inputs, batch_targets, classes=classes)
+                steps += 1
+        preds.append(pred)
 
-        loss = self.loss_func(y, target_batch)
-        loss.backward()
-        self.optimizer.step()
-        return loss
-
-    def evaluate_batch(self, inputs, targets, metrics=['accuracy']):
-        """Evaluates the model over a single batch of samples.
-
-        # Arguments
-            inputs: torch.Tensor or list of torch.Tensor
-            targets: torch.Tensor. Target values/classes
-
-        # Returns
-            Scalar test loss as torch variable
-
-        """
-        inputs = _to_list(inputs)
-
-        input_batch = [Variable(x, volatile=True) for x in inputs]
-        target_batch = Variable(targets, volatile=True)
-        self.model.eval()
-        # TODO : Make inputs and targets accept np nd-arrayss
-
-        if len(input_batch) == 1:
-            y = self.model(input_batch[0])
-        else:
-            y = self.model(input_batch)
-
-        loss = self.loss_func(y, target_batch)
-        return loss
+        return preds
 
     def predict_batch(self, inputs, classes=False):
         """Returns predictions for a single batch of samples.
@@ -272,6 +282,6 @@ class Trainer(object):
             y = self.model(input_batch)
 
         if classes:
-            return torch.max(y, -1)[1]
+            return torch.max(y.data, -1)[1]
         else:
-            return y
+            return y.data
