@@ -109,7 +109,7 @@ class Trainer(object):
 
                 if validation_data is not None:
                     if isinstance(validation_data, DataLoader) or inspect.isgenerator(validation_data):
-                        self.evaluate_on_generator(validation_data)
+                        self.evaluate_on_generator(validation_data, steps_per_epoch=validation_steps)
                     else:
                         self.evaluate(validation_data[0], validation_data[1])
         else:
