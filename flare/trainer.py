@@ -16,7 +16,7 @@ def _to_list(x):
     if isinstance(x, (list, tuple)):
         return x
     else:
-        return list(x)
+        return [x]
 
 
 class dataset(Dataset):
