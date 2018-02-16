@@ -16,7 +16,7 @@ def _to_list(x):
     if isinstance(x, (list, tuple)):
         return x
     else:
-        return list(x)
+        return [x]
 
 
 class dataset(Dataset):
@@ -109,7 +109,7 @@ class Trainer(object):
 
                 if validation_data is not None:
                     if isinstance(validation_data, DataLoader) or inspect.isgenerator(validation_data):
-                        self.evaluate_on_generator(validation_data)
+                        self.evaluate_on_generator(validation_data, steps_per_epoch=validation_steps)
                     else:
                         self.evaluate(validation_data[0], validation_data[1])
         else:
@@ -238,29 +238,25 @@ class Trainer(object):
         predict_data_loader = DataLoader(
             predict_dataset, batch_size=batch_size, shuffle=False)
 
-        preds = []
-        for batch in tqdm(predict_data_loader):
-            pred = self.predict_batch(batch, classes=classes)
-            preds.append(pred)
+        return self.predict_on_generator(predict_data_loader, classes=classes)
 
-        return torch.cat(preds, dim=-1)
-
-    def predict_on_generator(self, generator, steps_per_epoch, classes=False):
+    def predict_on_generator(self, generator, steps_per_epoch=None, classes=False):
         preds = []
         if isinstance(generator, DataLoader):
             for batch in generator:
-                batch_inputs, batch_targets = batch
+                batch_inputs = batch
                 pred = self.predict_batch(
-                    batch_inputs, batch_targets, classes=classes)
+                    batch_inputs, classes=classes)
+                preds.append(pred)
         else:
             steps = 0
             while steps < steps_per_epoch:
-                batch_inputs, batch_targets = next(generator)
-                pred = self.predict_batch(batch_inputs, batch_targets, classes=classes)
+                batch_inputs = next(generator)
+                pred = self.predict_batch(batch_inputs, classes=classes)
                 steps += 1
-        preds.append(pred)
+                preds.append(pred)
 
-        return preds
+        return torch.cat(preds)
 
     def predict_batch(self, inputs, classes=False):
         """Returns predictions for a single batch of samples.
