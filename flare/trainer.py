@@ -51,10 +51,7 @@ class Trainer(object):
         # Arguments:
             model: An instance of torch.nn.Module
             loss: A PyTorch loss function
-            optimizer: String (name of optimizer) or optimizer object
-
-        # Raises:
-            TypeError: If optimizer is invalid
+            optimizer: An instance of torch.optim object
         """
         self.model = model
         self.optimizer = optimizer
@@ -70,12 +67,10 @@ class Trainer(object):
             batch_size: int. Number of samples per gradient update.
             epochs: int. Number of epochs to train the model.
             validation_split: float (0. < x < 1.)
-                Fraction of data to use as validation data
-            validation_data: tuple(input_valid, target_valid)
+                Fraction of data to use as validation data. This
+                takes precedence of validation_data
+            validation_data: tuple(input_data, target_data)
             shuffle: boolean. Whether to shuffle data at each epoch
-
-        # Returns
-            Epoch loss history as 1D torch variable
 
         #Raises
             ValueError: If the number of samples in inputs and
@@ -100,6 +95,32 @@ class Trainer(object):
             train_data_loader, epochs=epochs, validation_data=validation_data)
 
     def train_on_generator(self, generator, steps_per_epoch=None, epochs=1, validation_data=None, validation_steps=None):
+        """Trains the model on data generator
+
+        # Arguments
+            generator : A user created data generator or
+                torch.utils.data.DataLoader. The generator should
+                yield and iterable of (input_data, target_data)
+            steps_per_epoch: Total number of steps (batches of samples)
+                to yield from generator before declaring one epoch
+                finished and starting the next epoch. Must be specified
+                for user created generator
+            epochs: int. Number of epochs to train the model.
+            validation_data: It can be any of the following
+                tuple(input_data, target_data),
+                generator yielding a tuple(input_data, target_data),
+                torch.utils.DataLoader,
+            validation_steps: Total number of steps to yield from
+                validation generator. Required only if 
+                you are using a generator for validation data.
+
+        #Raises
+            ValueError: If the number of samples in inputs and
+                        targets are not equal
+            
+            AssertionError: If generator is a user defined generator and 
+                steps_per_epoch is not specified
+        """
         if isinstance(generator, DataLoader):
             for epoch in range(epochs):
                 print('Epoch', str(epoch), 'of', str(epochs))
@@ -135,7 +156,7 @@ class Trainer(object):
             targets: torch.Tensor. Target values/classes
 
         # Returns
-            Scalar training loss as torch variable
+            Scalar training loss as torch tensor
         """
         inputs = _to_list(inputs)
 
@@ -163,10 +184,6 @@ class Trainer(object):
             inputs: torch.Tensor or list of torch.Tensor
             targets: torch.Tensor. Target values/classes
             batch_size: int. Number of samples per gradient update.
-            metrics : ## TODO ##
-
-        # Returns
-            Scalar test loss as torch variable
 
         #Raises
             ValueError: If the number of samples in inputs and
@@ -181,6 +198,21 @@ class Trainer(object):
         self.evaluate_on_generator(valid_data_loader)
 
     def evaluate_on_generator(self, generator, steps_per_epoch=None):
+        """Evaluates the model on data generator
+
+        # Arguments
+            generator : A user created data generator or
+                torch.utils.data.DataLoader. The generator should
+                yield and iterable of (input_data, target_data)
+            steps_per_epoch: Total number of steps (batches of samples)
+                to yield from generator before declaring one epoch
+                finished and starting the next epoch. Must be specified
+                for user created generator
+
+        #Raises
+            AssertionError: If generator is a user defined generator and 
+                steps_per_epoch is not specified
+        """
         if isinstance(generator, DataLoader):
             for batch in tqdm(generator):
                 batch_inputs, batch_targets = batch
@@ -199,7 +231,7 @@ class Trainer(object):
             targets: torch.Tensor. Target values/classes
 
         # Returns
-            Scalar test loss as torch variable
+            Scalar test loss as torch tensor
 
         """
         inputs = _to_list(inputs)
@@ -227,7 +259,7 @@ class Trainer(object):
             classes: boolean. Whether to return class predictions
 
         # Returns
-            A 1D torch variable of predictions
+            A 1D torch tensor of predictions
 
         #Raises
             ValueError: If the number of samples in inputs are
@@ -241,6 +273,21 @@ class Trainer(object):
         return self.predict_on_generator(predict_data_loader, classes=classes)
 
     def predict_on_generator(self, generator, steps_per_epoch=None, classes=False):
+        """Predicts the model on data generator
+
+        # Arguments
+            generator : A user created data generator or
+                torch.utils.data.DataLoader. The generator should
+                yield and iterable of (input_data)
+            steps_per_epoch: Total number of steps (batches of samples)
+                to yield from generator before declaring one epoch
+                finished and starting the next epoch. Must be specified
+                for user created generator
+
+        #Raises
+            AssertionError: If generator is a user defined generator and 
+                steps_per_epoch is not specified
+        """
         preds = []
         if isinstance(generator, DataLoader):
             for batch in generator:
@@ -265,7 +312,7 @@ class Trainer(object):
             inputs: torch.Tensor or list of torch.Tensor
             classes: boolean. Whether to return class predictions
         # Returns
-            A torch variable of predictions
+            A torch tensor of predictions
         """
         inputs = _to_list(inputs)
         input_batch = [Variable(x, volatile=True) for x in inputs]
