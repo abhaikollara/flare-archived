@@ -71,8 +71,9 @@ class Trainer(object):
         """Trains the model for a fixed number of epochs
 
         # Arguments
-            inputs: torch.Tensor or list of torch.Tensor
-            targets: torch.Tensor. Target values/classes
+            inputs: A single input or a list of inputs which can be either
+                numpy arrays or torch tensors
+            targets: Target values/classes. A numpy array or a torch tensor.
             batch_size: int. Number of samples per gradient update.
             epochs: int. Number of epochs to train the model.
             validation_split: float (0. < x < 1.)
@@ -162,8 +163,9 @@ class Trainer(object):
         """ Single gradient update over one batch of samples
 
         # Arguments
-            inputs: torch.Tensor or list of torch.Tensor
-            targets: torch.Tensor. Target values/classes
+            inputs: A single input or a list of inputs which can be either
+                numpy arrays or torch tensors
+            targets: Target values/classes. A numpy array or a torch tensor.
 
         # Returns
             Scalar training loss as torch tensor
@@ -176,7 +178,6 @@ class Trainer(object):
         target_batch = Variable(targets)
         self.model.train()
 
-        # TODO : Make inputs and targets accept np nd-arrayss
         if len(input_batch) == 1:
             y = self.model(input_batch[0])
         else:
@@ -192,8 +193,9 @@ class Trainer(object):
             batch by batch without optimizing
 
         # Arguments
-            inputs: torch.Tensor or list of torch.Tensor
-            targets: torch.Tensor. Target values/classes
+            inputs: A single input or a list of inputs which can be either
+                numpy arrays or torch tensors
+            targets: Target values/classes. A numpy array or a torch tensor.
             batch_size: int. Number of samples per gradient update.
 
         #Raises
@@ -240,8 +242,9 @@ class Trainer(object):
         """Evaluates the model over a single batch of samples.
 
         # Arguments
-            inputs: torch.Tensor or list of torch.Tensor
-            targets: torch.Tensor. Target values/classes
+            inputs: A single input or a list of inputs which can be either
+                numpy arrays or torch tensors
+            targets: Target values/classes. A numpy array or a torch tensor.
 
         # Returns
             Scalar test loss as torch tensor
@@ -253,7 +256,6 @@ class Trainer(object):
         input_batch = [Variable(x, volatile=True) for x in inputs]
         target_batch = Variable(targets, volatile=True)
         self.model.eval()
-        # TODO : Make inputs and targets accept np nd-arrayss
 
         if len(input_batch) == 1:
             y = self.model(input_batch[0])
@@ -268,7 +270,8 @@ class Trainer(object):
            by batch for the input samples.
 
         # Arguments
-            inputs: torch.Tensor or list of torch.Tensor
+            inputs: A single input or a list of inputs which can be either
+                numpy arrays or torch tensors
             batch_size: integer. Number of samples per batch
             classes: boolean. Whether to return class predictions
 
@@ -324,7 +327,8 @@ class Trainer(object):
         """Returns predictions for a single batch of samples.
 
         # Arguments
-            inputs: torch.Tensor or list of torch.Tensor
+            inputs: A single input or a list of inputs which can be either
+                numpy arrays or torch tensors
             classes: boolean. Whether to return class predictions
         # Returns
             A torch tensor of predictions
@@ -332,8 +336,6 @@ class Trainer(object):
         inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
 
         input_batch = [Variable(x, volatile=True) for x in inputs]
-
-        # TODO : Make inputs and targets accept np nd-arrayss
 
         if len(input_batch) == 1:
             y = self.model(input_batch[0])
