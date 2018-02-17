@@ -18,6 +18,15 @@ def _to_list(x):
     else:
         return [x]
 
+def _wrap_in_tensor(x):
+    if torch.is_tensor(x):
+        return x
+    if issubclass(x.dtype.type, np.floating):
+        return torch.FloatTensor(x)
+    elif issubclass(x.dtype.type, np.integer):
+        return torch.LongTensor(x)
+    else:
+        raise TypeError('Input array must be valid numpy arrays')
 
 class dataset(Dataset):
 
@@ -77,7 +86,8 @@ class Trainer(object):
                         targets are not equal
         """
 
-        inputs = _to_list(inputs)
+        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
+        targets = _wrap_in_tensor(targets)
 
         if validation_split > 0.0:
             split_size = int(len(inputs[0]) * validation_split)
@@ -158,7 +168,8 @@ class Trainer(object):
         # Returns
             Scalar training loss as torch tensor
         """
-        inputs = _to_list(inputs)
+        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
+        targets = _wrap_in_tensor(targets)
 
         self.optimizer.zero_grad()
         input_batch = [Variable(x) for x in inputs]
@@ -190,7 +201,9 @@ class Trainer(object):
                         targets are not equal
         """
 
-        inputs = _to_list(inputs)
+        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
+        targets = _wrap_in_tensor(targets)
+
         valid_dataset = dataset(inputs, targets)
         valid_data_loader = DataLoader(
             valid_dataset, batch_size=batch_size)
@@ -234,7 +247,8 @@ class Trainer(object):
             Scalar test loss as torch tensor
 
         """
-        inputs = _to_list(inputs)
+        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
+        targets = _wrap_in_tensor(targets)
 
         input_batch = [Variable(x, volatile=True) for x in inputs]
         target_batch = Variable(targets, volatile=True)
@@ -265,7 +279,8 @@ class Trainer(object):
             ValueError: If the number of samples in inputs are
                         not equal
         """
-        inputs = _to_list(inputs)
+        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
+
         predict_dataset = dataset(inputs)
         predict_data_loader = DataLoader(
             predict_dataset, batch_size=batch_size, shuffle=False)
@@ -314,7 +329,8 @@ class Trainer(object):
         # Returns
             A torch tensor of predictions
         """
-        inputs = _to_list(inputs)
+        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
+
         input_batch = [Variable(x, volatile=True) for x in inputs]
 
         # TODO : Make inputs and targets accept np nd-arrayss

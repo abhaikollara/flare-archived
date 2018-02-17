@@ -6,16 +6,17 @@ from flare import Trainer, dataset
 from torch.utils.data import DataLoader
 import pytest
 
-x1 = np.random.rand(1000,5)
-x2 = np.random.rand(1000,5)
-targets = np.random.randint(0, 10, size=[1000,])
+np_input_1 = np.random.rand(1000,5)
+np_input_2 = np.random.rand(1000,5)
+np_target = np.random.randint(0, 10, size=[1000,])
 
-xv1 = torch.from_numpy(x1).float()
-xv2 = torch.from_numpy(x2).float()
-tv = torch.FloatTensor(targets).long()
+tensor_input_1 = torch.from_numpy(np_input_1).float()
+tensor_input_2 = torch.from_numpy(np_input_2).float()
+tensor_target = torch.FloatTensor(np_target).long()
 
-train_dataset = dataset([xv1, xv2], tv)
-predict_dataset = dataset([xv1, xv2])
+
+train_dataset = dataset([tensor_input_1, tensor_input_2], tensor_target)
+predict_dataset = dataset([tensor_input_1, tensor_input_2])
 
 class linear_1(nn.Module):
     
@@ -46,11 +47,11 @@ def generator(targets=True):
     while True:
         i = 0
         bs = 32
-        for i in range(0, xv1.size()[0], bs):
+        for i in range(0, tensor_input_1.shape[0], bs):
             if targets:
-                yield [[xv1[i:i+bs], xv2[i:i+bs]], tv[i:i+bs]]
+                yield [[np_input_1[i:i+bs], np_input_2[i:i+bs]], np_target[i:i+bs]]
             else:
-                yield [xv1[i:i+bs], xv2[i:i+bs]]
+                yield [np_input_1[i:i+bs], np_input_2[i:i+bs]]
 
 single_input_model = linear_1()
 multi_input_model = linear_2()
@@ -67,8 +68,8 @@ def _get_optim(model):
 class TestDataset(object):
 
     @pytest.mark.parametrize("input_data, target_data", [
-        ([xv1, xv2[:300]], tv),
-        ([xv1, xv2], tv[:300])
+        ([np_input_1, np_input_2[:300]], np_target),
+        ([np_input_1, np_input_2], np_target[:300])
     ])
     def test_unequal_samples(self, input_data, target_data):
         with pytest.raises(ValueError):
@@ -79,27 +80,36 @@ class TestDataset(object):
 class TestTrainer(object):
 
     @pytest.mark.parametrize("model, data", [
-        (multi_input_model, [xv1, xv2]),
-        (single_input_model, xv1,),
+        (multi_input_model, [np_input_1, np_input_2]),
+        (single_input_model, np_input_1,),
     ])
-    @pytest.mark.parametrize("validation_split, validation_data",
-        [(0.0, None), (0.1, None), (0.0, None)] #### FIX THIS !!
+    @pytest.mark.parametrize("validation_split",
+        [0.0, 0.1]
     )
-    def test_train(self, model, data, validation_split, validation_data):
+    def test_train_validation_split(self, model, data, validation_split):
         t = Trainer(model, nn.CrossEntropyLoss(), _get_optim(model))
-        t.train(data, tv, validation_split=validation_split, validation_data=None, batch_size=128)
+        t.train(data, np_target, validation_split=validation_split, batch_size=128)
+
+    @pytest.mark.parametrize("model, data, validation_data", [
+        (multi_input_model, [np_input_1, np_input_2], [(np_input_1, np_input_2), np_target]),
+        (single_input_model, np_input_1, (np_input_1, np_target)),
+    ])
+    def test_train_validation_data(self, model, data, validation_data):
+        t = Trainer(model, nn.CrossEntropyLoss(), _get_optim(model))
+        t.train(data, np_target, validation_data=validation_data, batch_size=128)
+
 
     @pytest.mark.parametrize("model, data", [
-        (multi_input_model, [xv1, xv2]),
-        (single_input_model, xv1),
+        (multi_input_model, [np_input_1, np_input_2]),
+        (single_input_model, np_input_1),
     ])
     def test_evaluate(self, model, data):
         t = Trainer(model, nn.CrossEntropyLoss(), _get_optim(model))
-        t.evaluate(data, tv, batch_size=128)
+        t.evaluate(data, np_target, batch_size=128)
 
     @pytest.mark.parametrize("model, data", [
-        (multi_input_model, [xv1, xv2]),
-        (single_input_model, xv1)
+        (multi_input_model, [np_input_1, np_input_2]),
+        (single_input_model, np_input_1)
     ])
     @pytest.mark.parametrize("classes",
         [True, False]
@@ -112,7 +122,7 @@ class TestTrainer(object):
         [train_generator, val_data_loader]
     )
     @pytest.mark.parametrize("validation_data",
-        [None, [(xv1, xv2), tv], train_generator, val_data_loader]
+        [None, [(np_input_1, np_input_2), np_target], train_generator, val_data_loader]
     )
     def test_train_on_generator(self, generator, validation_data):
         t = Trainer(multi_input_model, nn.CrossEntropyLoss(), _get_optim(multi_input_model))
