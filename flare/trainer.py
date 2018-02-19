@@ -7,6 +7,7 @@ from torch.utils.data import Dataset, DataLoader
 import numpy as np
 from tqdm import tqdm
 
+CUDA_AVAILABLE = torch.cuda.is_available()
 
 def _to_list(x):
     '''
@@ -19,16 +20,21 @@ def _to_list(x):
         return [x]
 
 
-def _wrap_in_tensor(x):
+def _wrap_in_tensor(x, CUDA=CUDA_AVAILABLE):
     if torch.is_tensor(x):
         return x
     if issubclass(x.dtype.type, np.floating):
-        return torch.FloatTensor(x)
+        tensor = torch.from_numpy(x.astype('float32', copy=False))
     elif issubclass(x.dtype.type, np.integer):
-        return torch.LongTensor(x)
+        tensor = torch.from_numpy(x)
     else:
         raise TypeError(
             'Input array must be valid numpy arrays or torch tensors')
+
+    if CUDA:
+        return tensor.cuda()
+    else:
+        return tensor
 
 
 class dataset(Dataset):
@@ -57,7 +63,7 @@ class dataset(Dataset):
 
 class Trainer(object):
 
-    def __init__(self, model, loss, optimizer):
+    def __init__(self, model, loss, optimizer, cuda=CUDA_AVAILABLE):
         """ A trainer utility for PyTorch modules
 
         # Arguments:
@@ -65,7 +71,7 @@ class Trainer(object):
             loss: A PyTorch loss function
             optimizer: An instance of torch.optim object
         """
-        self.model = model
+        self.model = model.cuda if cuda else model
         self.optimizer = optimizer
         self.loss_func = loss
 
