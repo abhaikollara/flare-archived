@@ -18,6 +18,7 @@ def _to_list(x):
     else:
         return [x]
 
+
 def _wrap_in_tensor(x):
     if torch.is_tensor(x):
         return x
@@ -26,7 +27,9 @@ def _wrap_in_tensor(x):
     elif issubclass(x.dtype.type, np.integer):
         return torch.LongTensor(x)
     else:
-        raise TypeError('Input array must be valid numpy arrays or torch tensors')
+        raise TypeError(
+            'Input array must be valid numpy arrays or torch tensors')
+
 
 class dataset(Dataset):
 
@@ -128,7 +131,7 @@ class Trainer(object):
         #Raises
             ValueError: If the number of samples in inputs and
                         targets are not equal
-            
+
             AssertionError: If generator is a user defined generator and 
                 steps_per_epoch is not specified
         """
@@ -141,7 +144,8 @@ class Trainer(object):
 
                 if validation_data is not None:
                     if isinstance(validation_data, DataLoader) or inspect.isgenerator(validation_data):
-                        self.evaluate_on_generator(validation_data, steps_per_epoch=validation_steps)
+                        self.evaluate_on_generator(
+                            validation_data, steps_per_epoch=validation_steps)
                     else:
                         self.evaluate(validation_data[0], validation_data[1])
         else:
