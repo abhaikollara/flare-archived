@@ -26,7 +26,7 @@ def _wrap_in_tensor(x):
     elif issubclass(x.dtype.type, np.integer):
         return torch.LongTensor(x)
     else:
-        raise TypeError('Input array must be valid numpy arrays')
+        raise TypeError('Input array must be valid numpy arrays or torch tensors')
 
 class dataset(Dataset):
 
