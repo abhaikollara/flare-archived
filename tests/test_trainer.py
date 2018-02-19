@@ -3,6 +3,7 @@ from torch import nn
 import numpy as np
 import flare
 from flare import Trainer, dataset
+from flare.trainer import _wrap_in_tensor
 from torch.utils.data import DataLoader
 import pytest
 
@@ -10,9 +11,9 @@ np_input_1 = np.random.rand(1000,5)
 np_input_2 = np.random.rand(1000,5)
 np_target = np.random.randint(0, 10, size=[1000,])
 
-tensor_input_1 = torch.from_numpy(np_input_1).float()
-tensor_input_2 = torch.from_numpy(np_input_2).float()
-tensor_target = torch.FloatTensor(np_target).long()
+tensor_input_1 = _wrap_in_tensor(np_input_1)
+tensor_input_2 = _wrap_in_tensor(np_input_2)
+tensor_target = _wrap_in_tensor(np_target)
 
 
 train_dataset = dataset([tensor_input_1, tensor_input_2], tensor_target)
@@ -47,7 +48,7 @@ def generator(targets=True):
     while True:
         i = 0
         bs = 32
-        for i in range(0, tensor_input_1.shape[0], bs):
+        for i in range(0, np_input_1.shape[0], bs):
             if targets:
                 yield [[np_input_1[i:i+bs], np_input_2[i:i+bs]], np_target[i:i+bs]]
             else:
@@ -141,3 +142,4 @@ class TestTrainer(object):
     def test_predict_on_generator(self, generator):
         t = Trainer(multi_input_model, nn.CrossEntropyLoss(), _get_optim(multi_input_model))
         t.predict_on_generator(generator, steps_per_epoch=31)
+

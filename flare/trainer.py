@@ -20,10 +20,10 @@ def _to_list(x):
         return [x]
 
 
-def _wrap_in_tensor(x, CUDA=CUDA_AVAILABLE):
+def _wrap_in_tensor(x, cuda=CUDA_AVAILABLE):
     if torch.is_tensor(x):
-        return x
-    if issubclass(x.dtype.type, np.floating):
+        return x.cuda() if cuda else x
+    elif issubclass(x.dtype.type, np.floating):
         tensor = torch.from_numpy(x.astype('float32', copy=False))
     elif issubclass(x.dtype.type, np.integer):
         tensor = torch.from_numpy(x)
@@ -31,7 +31,7 @@ def _wrap_in_tensor(x, CUDA=CUDA_AVAILABLE):
         raise TypeError(
             'Input array must be valid numpy arrays or torch tensors')
 
-    if CUDA:
+    if cuda:
         return tensor.cuda()
     else:
         return tensor
@@ -71,7 +71,7 @@ class Trainer(object):
             loss: A PyTorch loss function
             optimizer: An instance of torch.optim object
         """
-        self.model = model.cuda if cuda else model
+        self.model = model.cuda() if cuda else model
         self.optimizer = optimizer
         self.loss_func = loss
 
