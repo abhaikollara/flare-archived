@@ -92,8 +92,8 @@ class TestTrainer(object):
         t.train(data, np_target, validation_split=validation_split, batch_size=128)
 
     @pytest.mark.parametrize("model, data, validation_data", [
-        (multi_input_model, [np_input_1, np_input_2], [(np_input_1, np_input_2), np_target]),
-        (single_input_model, np_input_1, (np_input_1, np_target)),
+        (multi_input_model, [np_input_1, np_input_2], [(np_input_1[:100], np_input_2[:100]), np_target[:100]]),
+        (single_input_model, np_input_1, (np_input_1[:100], np_target[:100])),
     ])
     def test_train_validation_data(self, model, data, validation_data):
         t = Trainer(model, nn.CrossEntropyLoss(), _get_optim(model))
@@ -123,7 +123,7 @@ class TestTrainer(object):
         [train_generator, val_data_loader]
     )
     @pytest.mark.parametrize("validation_data",
-        [None, [(np_input_1, np_input_2), np_target], train_generator, val_data_loader]
+        [None, [(np_input_1[:100], np_input_2[:100]), np_target[:100]], train_generator, val_data_loader]
     )
     def test_train_on_generator(self, generator, validation_data):
         t = Trainer(multi_input_model, nn.CrossEntropyLoss(), _get_optim(multi_input_model))
