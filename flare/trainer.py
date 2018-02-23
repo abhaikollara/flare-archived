@@ -19,30 +19,32 @@ def _to_list(x):
     else:
         return [x]
 
+def _standardize_dtype(x):
+    if isinstance(x, np.ndarray):
+        if issubclass(x.dtype.type, np.floating):
+            return x.astype('float32', copy=False)
+        elif issubclass(x.dtype.type, np.integer):
+            return x.astype('long', copy=False)
+    else:
+        return x
 
 def _wrap_in_tensor(x, cuda=CUDA_AVAILABLE):
     if torch.is_tensor(x):
         return x.cuda() if cuda else x
-    elif issubclass(x.dtype.type, np.floating):
-        tensor = torch.from_numpy(x.astype('float32', copy=False))
-    elif issubclass(x.dtype.type, np.integer):
-        tensor = torch.from_numpy(x)
+    elif isinstance(x, np.ndarray):
+        x = _standardize_dtype(x)
+        return torch.from_numpy(x).cuda() if cuda else torch.from_numpy(x)
     else:
         raise TypeError(
             'Input array must be valid numpy arrays or torch tensors')
-
-    if cuda:
-        return tensor.cuda()
-    else:
-        return tensor
 
 
 class dataset(Dataset):
 
     def __init__(self, inputs, targets=None):
         super(dataset, self).__init__()
-        self.inputs = inputs
-        self.targets = targets
+        self.inputs = [_standardize_dtype(x) for x in inputs]
+        self.targets = _standardize_dtype(targets)
         if len(set(len(x) for x in self.inputs)) != 1:
             raise ValueError('Inputs must have equal n_samples dimension.')
 
@@ -52,7 +54,7 @@ class dataset(Dataset):
                     'Inputs and targets must have equal n_samples dimension')
 
     def __len__(self):
-        return self.inputs[0].size()[0]
+        return len(self.inputs[0])
 
     def __getitem__(self, idx):
         if self.targets is not None:
@@ -96,8 +98,7 @@ class Trainer(object):
                         targets are not equal
         """
 
-        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
-        targets = _wrap_in_tensor(targets)
+        inputs = _to_list(inputs)
 
         if validation_split > 0.0:
             split_size = int(len(inputs[0]) * validation_split)
@@ -213,8 +214,7 @@ class Trainer(object):
                         targets are not equal
         """
 
-        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
-        targets = _wrap_in_tensor(targets)
+        inputs = _to_list(inputs)
 
         valid_dataset = dataset(inputs, targets)
         valid_data_loader = DataLoader(
@@ -292,7 +292,7 @@ class Trainer(object):
             ValueError: If the number of samples in inputs are
                         not equal
         """
-        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
+        inputs = _to_list(inputs)
 
         predict_dataset = dataset(inputs)
         predict_data_loader = DataLoader(
