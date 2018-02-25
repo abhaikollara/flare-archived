@@ -22,8 +22,8 @@ def _to_list(x):
 
 def _wrap_in_tensor(x, cuda=CUDA_AVAILABLE):
     if torch.is_tensor(x):
-        return x.cuda() if cuda else x
-    elif issubclass(x.dtype.type, np.floating):
+        return x.pin_memory() if cuda else x
+    if issubclass(x.dtype.type, np.floating):
         tensor = torch.from_numpy(x.astype('float32', copy=False))
     elif issubclass(x.dtype.type, np.integer):
         tensor = torch.from_numpy(x)
@@ -32,7 +32,7 @@ def _wrap_in_tensor(x, cuda=CUDA_AVAILABLE):
             'Input array must be valid numpy arrays or torch tensors')
 
     if cuda:
-        return tensor.cuda()
+        return tensor.pin_memory()
     else:
         return tensor
 
@@ -74,6 +74,7 @@ class Trainer(object):
         self.model = model.cuda() if cuda else model
         self.optimizer = optimizer
         self.loss_func = loss
+        self.cuda = cuda
 
     def train(self, inputs, targets, batch_size=1, epochs=1,
               validation_split=0.0, validation_data=None, shuffle=True, disable_progbar=False):
@@ -183,6 +184,10 @@ class Trainer(object):
         inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
         targets = _wrap_in_tensor(targets)
 
+        if self.cuda:
+            inputs = [x.cuda() for x in inputs]
+            targets = targets.cuda()
+
         self.optimizer.zero_grad()
         input_batch = [Variable(x) for x in inputs]
         target_batch = Variable(targets)
@@ -262,6 +267,10 @@ class Trainer(object):
         """
         inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
         targets = _wrap_in_tensor(targets)
+
+        if self.cuda:
+            inputs = [x.cuda() for x in inputs]
+            targets = targets.cuda()
 
         input_batch = [Variable(x, volatile=True) for x in inputs]
         target_batch = Variable(targets, volatile=True)
@@ -344,7 +353,8 @@ class Trainer(object):
             A torch tensor of predictions
         """
         inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
-
+        if self.cuda:
+            inputs = [x.cuda() for x in inputs]
         input_batch = [Variable(x, volatile=True) for x in inputs]
 
         if len(input_batch) == 1:
