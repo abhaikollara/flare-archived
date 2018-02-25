@@ -28,7 +28,7 @@ def _standardize_dtype(x):
     else:
         return x
 
-def _wrap_in_tensor(x, cuda=CUDA_AVAILABLE):
+def _wrap_in_tensor(x, cuda):
     if torch.is_tensor(x):
         return x.cuda() if cuda else x
     elif isinstance(x, np.ndarray):
@@ -72,10 +72,12 @@ class Trainer(object):
             model: An instance of torch.nn.Module
             loss: A PyTorch loss function
             optimizer: An instance of torch.optim object
+            cuda: A boolean indicating whether to use CUDA
         """
         self.model = model.cuda() if cuda else model
         self.optimizer = optimizer
         self.loss_func = loss
+        self.cuda = cuda
 
     def train(self, inputs, targets, batch_size=1, epochs=1,
               validation_split=0.0, validation_data=None, shuffle=True, disable_progbar=False):
@@ -181,8 +183,8 @@ class Trainer(object):
         # Returns
             Scalar training loss as torch tensor
         """
-        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
-        targets = _wrap_in_tensor(targets)
+        inputs = [_wrap_in_tensor(x, self.cuda) for x in _to_list(inputs)]
+        targets = _wrap_in_tensor(targets, self.cuda)
 
         self.optimizer.zero_grad()
         input_batch = [Variable(x) for x in inputs]
@@ -260,8 +262,8 @@ class Trainer(object):
             Scalar test loss as torch tensor
 
         """
-        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
-        targets = _wrap_in_tensor(targets)
+        inputs = [_wrap_in_tensor(x, self.cuda) for x in _to_list(inputs)]
+        targets = _wrap_in_tensor(targets, self.cuda)
 
         input_batch = [Variable(x, volatile=True) for x in inputs]
         target_batch = Variable(targets, volatile=True)
@@ -343,7 +345,7 @@ class Trainer(object):
         # Returns
             A torch tensor of predictions
         """
-        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
+        inputs = [_wrap_in_tensor(x, self.cuda) for x in _to_list(inputs)]
 
         input_batch = [Variable(x, volatile=True) for x in inputs]
 
