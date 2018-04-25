@@ -108,7 +108,6 @@ class Trainer(object):
         self.train_on_generator(
             train_data_loader, epochs=epochs, validation_data=validation_data)
 
-
     def train_on_generator(self, generator, steps_per_epoch=None, epochs=1, validation_data=None, validation_steps=None):
         """Trains the model on data generator
 
@@ -154,7 +153,6 @@ class Trainer(object):
                         validation_data, validation_steps)
                 else:
                     self.evaluate(validation_data[0], validation_data[1])
-
 
     def train_batch(self, inputs, targets):
         """ Single gradient update over one batch of samples
@@ -275,7 +273,8 @@ class Trainer(object):
             ValueError: If the number of samples in inputs are
                         not equal
         """
-        inputs = [_wrap_in_tensor(x, requires_grad=False) for x in _to_list(inputs)]
+        inputs = [_wrap_in_tensor(x, requires_grad=False)
+                  for x in _to_list(inputs)]
 
         predict_dataset = dataset(inputs)
         predict_data_loader = DataLoader(
@@ -311,7 +310,7 @@ class Trainer(object):
                 batch_inputs = next(generator)
                 pred = self.predict_batch(batch_inputs, classes=classes)
                 preds.append(pred)
-            
+
         return torch.cat(preds)
 
     def predict_batch(self, inputs, classes=False):
@@ -324,7 +323,8 @@ class Trainer(object):
         # Returns
             A torch tensor of predictions
         """
-        input_batch = [_wrap_in_tensor(x, requires_grad=False) for x in _to_list(inputs)]
+        input_batch = [_wrap_in_tensor(x, requires_grad=False)
+                       for x in _to_list(inputs)]
 
         if len(input_batch) == 1:
             y = self.model(input_batch[0])
