@@ -19,13 +19,13 @@ def _to_list(x):
         return [x]
 
 
-def _wrap_in_tensor(x):
+def _wrap_in_tensor(x, requires_grad=True):
     if torch.is_tensor(x):
         return x
     if issubclass(x.dtype.type, np.floating):
-        return torch.FloatTensor(x)
+        return torch.tensor(x, requires_grad=requires_grad, dtype=torch.float32)
     elif issubclass(x.dtype.type, np.integer):
-        return torch.LongTensor(x)
+        return torch.tensor(x, requires_grad=requires_grad, dtype=torch.int64)
     else:
         raise TypeError(
             'Input array must be valid numpy arrays or torch tensors')
@@ -91,7 +91,7 @@ class Trainer(object):
         """
 
         inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
-        targets = _wrap_in_tensor(targets)
+        targets = _wrap_in_tensor(targets, requires_grad=False)
 
         if validation_split > 0.0:
             split_size = int(len(inputs[0]) * validation_split)
@@ -174,12 +174,10 @@ class Trainer(object):
         # Returns
             Scalar training loss as torch tensor
         """
-        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
-        targets = _wrap_in_tensor(targets)
+        input_batch = [_wrap_in_tensor(x) for x in _to_list(inputs)]
+        target_batch = _wrap_in_tensor(targets, requires_grad=False)
 
         self.optimizer.zero_grad()
-        input_batch = [Variable(x) for x in inputs]
-        target_batch = Variable(targets)
         self.model.train()
 
         if len(input_batch) == 1:
@@ -190,7 +188,7 @@ class Trainer(object):
         loss = self.loss_func(y, target_batch)
         loss.backward()
         self.optimizer.step()
-        return loss.data
+        return loss.item()
 
     def evaluate(self, inputs, targets, batch_size=1):
         """Computes and prints the loss on data
@@ -208,7 +206,7 @@ class Trainer(object):
         """
 
         inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
-        targets = _wrap_in_tensor(targets)
+        targets = _wrap_in_tensor(targets, requires_grad=False)
 
         valid_dataset = dataset(inputs, targets)
         valid_data_loader = DataLoader(
@@ -254,11 +252,9 @@ class Trainer(object):
             Scalar test loss as torch tensor
 
         """
-        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
-        targets = _wrap_in_tensor(targets)
+        input_batch = [_wrap_in_tensor(x) for x in _to_list(inputs)]
+        target_batch = _wrap_in_tensor(targets, requires_grad=False)
 
-        input_batch = [Variable(x, volatile=True) for x in inputs]
-        target_batch = Variable(targets, volatile=True)
         self.model.eval()
 
         if len(input_batch) == 1:
@@ -267,7 +263,7 @@ class Trainer(object):
             y = self.model(input_batch)
 
         loss = self.loss_func(y, target_batch)
-        return loss.data
+        return loss.item()
 
     def predict(self, inputs, batch_size=1, classes=False, disable_progbar=False):
         """Generates output predictions batch
@@ -286,7 +282,7 @@ class Trainer(object):
             ValueError: If the number of samples in inputs are
                         not equal
         """
-        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
+        inputs = [_wrap_in_tensor(x, requires_grad=False) for x in _to_list(inputs)]
 
         predict_dataset = dataset(inputs)
         predict_data_loader = DataLoader(
@@ -337,9 +333,7 @@ class Trainer(object):
         # Returns
             A torch tensor of predictions
         """
-        inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
-
-        input_batch = [Variable(x, volatile=True) for x in inputs]
+        input_batch = [_wrap_in_tensor(x, requires_grad=False) for x in _to_list(inputs)]
 
         if len(input_batch) == 1:
             y = self.model(input_batch[0])
@@ -349,4 +343,4 @@ class Trainer(object):
         if classes:
             return torch.max(y.data, -1)[1]
         else:
-            return y.data
+            return y
