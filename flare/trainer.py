@@ -108,6 +108,7 @@ class Trainer(object):
         self.train_on_generator(
             train_data_loader, epochs=epochs, validation_data=validation_data)
 
+
     def train_on_generator(self, generator, steps_per_epoch=None, epochs=1, validation_data=None, validation_steps=None):
         """Trains the model on data generator
 
@@ -135,33 +136,25 @@ class Trainer(object):
             AssertionError: If generator is a user defined generator and 
                 steps_per_epoch is not specified
         """
-        if isinstance(generator, DataLoader):
-            for epoch in range(epochs):
-                print('Epoch', str(epoch), 'of', str(epochs))
+        for epoch in range(epochs):
+            print('Epoch', str(epoch), 'of', str(epochs))
+            if isinstance(generator, DataLoader):
                 for batch in tqdm(generator):
                     batch_inputs, batch_targets = batch
                     _ = self.train_batch(batch_inputs, batch_targets)
-
-                if validation_data is not None:
-                    if isinstance(validation_data, DataLoader) or inspect.isgenerator(validation_data):
-                        self.evaluate_on_generator(
-                            validation_data, steps_per_epoch=validation_steps)
-                    else:
-                        self.evaluate(validation_data[0], validation_data[1])
-        else:
-            assert steps_per_epoch is not None
-            for epoch in range(epochs):
-                print('Epoch', str(epoch), 'of', str(epochs))
+            else:
+                assert steps_per_epoch is not None
                 for _ in tqdm(range(steps_per_epoch)):
                     batch_inputs, batch_targets = next(generator)
                     _ = self.train_batch(batch_inputs, batch_targets)
 
-                if validation_data is not None:
-                    if isinstance(validation_data, DataLoader) or inspect.isgenerator(validation_data):
-                        self.evaluate_on_generator(
-                            validation_data, validation_steps)
-                    else:
-                        self.evaluate(validation_data[0], validation_data[1])
+            if validation_data is not None:
+                if isinstance(validation_data, DataLoader) or inspect.isgenerator(validation_data):
+                    self.evaluate_on_generator(
+                        validation_data, validation_steps)
+                else:
+                    self.evaluate(validation_data[0], validation_data[1])
+
 
     def train_batch(self, inputs, targets):
         """ Single gradient update over one batch of samples
@@ -308,19 +301,17 @@ class Trainer(object):
         """
         preds = []
         if isinstance(generator, DataLoader):
-            for batch in generator:
+            for batch in tqdm(generator):
                 batch_inputs = batch
                 pred = self.predict_batch(
                     batch_inputs, classes=classes)
                 preds.append(pred)
         else:
-            steps = 0
-            while steps < steps_per_epoch:
+            for _ in tqdm(range(steps_per_epoch)):
                 batch_inputs = next(generator)
                 pred = self.predict_batch(batch_inputs, classes=classes)
-                steps += 1
                 preds.append(pred)
-
+            
         return torch.cat(preds)
 
     def predict_batch(self, inputs, classes=False):
