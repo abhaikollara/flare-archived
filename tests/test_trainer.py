@@ -2,7 +2,7 @@ import torch
 from torch import nn
 import numpy as np
 import flare
-from flare import Trainer, dataset
+from flare import Trainer, TensorDataset
 from torch.utils.data import DataLoader
 import pytest
 
@@ -15,8 +15,8 @@ tensor_input_2 = torch.from_numpy(np_input_2).float()
 tensor_target = torch.FloatTensor(np_target).long()
 
 
-train_dataset = dataset([tensor_input_1, tensor_input_2], tensor_target)
-predict_dataset = dataset([tensor_input_1, tensor_input_2])
+train_dataset = TensorDataset([tensor_input_1, tensor_input_2], tensor_target)
+predict_dataset = TensorDataset([tensor_input_1, tensor_input_2])
 
 class linear_1(nn.Module):
     
