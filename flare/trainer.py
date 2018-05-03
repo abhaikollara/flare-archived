@@ -332,6 +332,6 @@ class Trainer(object):
             y = self.model(input_batch)
 
         if classes:
-            return torch.max(y.data, -1)[1]
+            return torch.max(y, -1)[1]
         else:
             return y
