@@ -31,10 +31,10 @@ def _wrap_in_tensor(x, requires_grad=True):
             'Input array must be valid numpy arrays or torch tensors')
 
 
-class dataset(Dataset):
+class TensorDataset(Dataset):
 
     def __init__(self, inputs, targets=None):
-        super(dataset, self).__init__()
+        super(TensorDataset, self).__init__()
         self.inputs = inputs
         self.targets = targets
         if len(set(len(x) for x in self.inputs)) != 1:
@@ -95,12 +95,12 @@ class Trainer(object):
 
         if validation_split > 0.0:
             split_size = int(len(inputs[0]) * validation_split)
-            train_dataset = dataset([x[:-split_size]
+            train_dataset = TensorDataset([x[:-split_size]
                                      for x in inputs], targets[:-split_size])
             validation_data = ([x[-split_size:]
                                 for x in inputs], targets[-split_size:])
         else:
-            train_dataset = dataset(inputs, targets)
+            train_dataset = TensorDataset(inputs, targets)
 
         train_data_loader = DataLoader(
             train_dataset, batch_size=batch_size, shuffle=shuffle)
@@ -199,7 +199,7 @@ class Trainer(object):
         inputs = [_wrap_in_tensor(x) for x in _to_list(inputs)]
         targets = _wrap_in_tensor(targets, requires_grad=False)
 
-        valid_dataset = dataset(inputs, targets)
+        valid_dataset = TensorDataset(inputs, targets)
         valid_data_loader = DataLoader(
             valid_dataset, batch_size=batch_size)
 
@@ -276,7 +276,7 @@ class Trainer(object):
         inputs = [_wrap_in_tensor(x, requires_grad=False)
                   for x in _to_list(inputs)]
 
-        predict_dataset = dataset(inputs)
+        predict_dataset = TensorDataset(inputs)
         predict_data_loader = DataLoader(
             predict_dataset, batch_size=batch_size, shuffle=False)
 
