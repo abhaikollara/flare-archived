@@ -311,7 +311,7 @@ class Trainer(object):
                 pred = self.predict_batch(batch_inputs, classes=classes)
                 preds.append(pred)
 
-        return torch.cat(preds)
+        return preds
 
     def predict_batch(self, inputs, classes=False):
         """Returns predictions for a single batch of samples.
