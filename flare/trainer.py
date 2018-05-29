@@ -1,7 +1,6 @@
 import inspect
 
 import torch
-from torch.autograd import Variable
 from torch import optim
 from torch.utils.data import Dataset, DataLoader
 import numpy as np
