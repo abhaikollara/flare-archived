@@ -46,7 +46,7 @@ class TensorDataset(Dataset):
                     'Inputs and targets must have equal n_samples dimension')
 
     def __len__(self):
-        return self.inputs[0].size()[0]
+        return self.inputs[0].shape[0]
 
     def __getitem__(self, idx):
         if self.targets is not None:
