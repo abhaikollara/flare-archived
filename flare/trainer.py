@@ -135,17 +135,18 @@ class Trainer(object):
             AssertionError: If generator is a user defined generator and 
                 steps_per_epoch is not specified
         """
+        if isinstance(generator, DataLoader):
+            batch_gen = (batch for batch in generator)
+            steps_per_epoch = int(len(generator.dataset) / generator.batch_size)
+        else:
+            assert steps_per_epoch is not None
+            batch_gen = generator
+
         for epoch in range(epochs):
             print('Epoch', str(epoch), 'of', str(epochs))
-            if isinstance(generator, DataLoader):
-                for batch in tqdm(generator):
-                    batch_inputs, batch_targets = batch
-                    _ = self.train_batch(batch_inputs, batch_targets)
-            else:
-                assert steps_per_epoch is not None
-                for _ in tqdm(range(steps_per_epoch)):
-                    batch_inputs, batch_targets = next(generator)
-                    _ = self.train_batch(batch_inputs, batch_targets)
+            for bnum in tqdm(range(steps_per_epoch)):
+                batch_inputs, batch_targets = next(batch_gen)
+                _ = self.train_batch(batch_inputs, batch_targets)
 
             if validation_data is not None:
                 if isinstance(validation_data, DataLoader) or inspect.isgenerator(validation_data):
@@ -222,14 +223,16 @@ class Trainer(object):
                 steps_per_epoch is not specified
         """
         if isinstance(generator, DataLoader):
-            for batch in tqdm(generator):
-                batch_inputs, batch_targets = batch
-                _ = self.evaluate_batch(batch_inputs, batch_targets)
+            batch_gen = (batch for batch in generator)
+            steps_per_epoch = int(len(generator.dataset) / generator.batch_size)
         else:
             assert steps_per_epoch is not None
-            for _ in tqdm(range(steps_per_epoch)):
-                batch_inputs, batch_targets = next(generator)
+            batch_gen = generator
+
+            for batch in tqdm(range(steps_per_epoch)):
+                batch_inputs, batch_targets = next(batch_gen)
                 _ = self.evaluate_batch(batch_inputs, batch_targets)
+
 
     def evaluate_batch(self, inputs, targets):
         """Evaluates the model over a single batch of samples.
@@ -300,16 +303,16 @@ class Trainer(object):
         """
         preds = []
         if isinstance(generator, DataLoader):
-            for batch in tqdm(generator):
-                batch_inputs = batch
-                pred = self.predict_batch(
-                    batch_inputs, classes=classes)
-                preds.append(pred)
+            batch_gen = (batch for batch in generator)
+            steps_per_epoch = int(len(generator.dataset) / generator.batch_size)
         else:
-            for _ in tqdm(range(steps_per_epoch)):
-                batch_inputs = next(generator)
-                pred = self.predict_batch(batch_inputs, classes=classes)
-                preds.append(pred)
+            assert steps_per_epoch is not None
+            batch_gen = generator
+        
+        for bno in tqdm(range(steps_per_epoch)):
+            batch_inputs = next(batch_gen)
+            pred = self.predict_batch(batch_inputs, classes=classes)
+            preds.append(pred)
 
         return preds
 
