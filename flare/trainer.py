@@ -228,9 +228,9 @@ class Trainer(object):
             assert steps_per_epoch is not None
             batch_gen = generator
 
-            for batch in tqdm(range(steps_per_epoch)):
-                batch_inputs, batch_targets = next(batch_gen)
-                _ = self.evaluate_batch(batch_inputs, batch_targets)
+        for batch in tqdm(range(steps_per_epoch)):
+            batch_inputs, batch_targets = next(batch_gen)
+            _ = self.evaluate_batch(batch_inputs, batch_targets)
 
 
     def evaluate_batch(self, inputs, targets):
