@@ -45,10 +45,10 @@ model = linear_two_input()
 
 t = Trainer(model, nn.CrossEntropyLoss(), torch.optim.Adam(model.parameters()))
 t.train([input_1, input_2], targets, validation_split=0.2, batch_size=128)
-
-[See MNIST example here]("https://github.com/abhaikollara/flare/blob/master/examples/mnist.py")
-
 ```
+
+
+[See MNIST example here](https://github.com/abhaikollara/flare/blob/master/examples/mnist.py)
 
 ## Why this name, Flare
 
