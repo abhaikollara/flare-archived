@@ -6,6 +6,11 @@ Flare is a utility library that enables users to train their networks on PyTorch
 
 Currently Flare is designed to run on PyTorch >= 0.4.0
 
+## Guiding principles
+- **"Everything should be made as simple as possible, but not simpler"**
+- **Intuitiveness** Do not support complex usecases at the cost of intuitiveness of simpler tasks.
+
+
 ## Installation
 First, clone the repo using
 `https://github.com/abhaikollara/flare.git`
