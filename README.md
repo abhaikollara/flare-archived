@@ -17,8 +17,7 @@ First, clone the repo using
 
 then `cd` to the **flare** folder and run the install command
 `
-cd flare
-sudo python setup.py install
+cd flare && sudo python setup.py install
 `
 
 ## Example
